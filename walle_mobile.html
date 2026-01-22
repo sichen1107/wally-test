@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Walle Controller</title>
+    <style>
+        /* 全局 App 样式 */
+        body {
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* 禁止选中文本 */
+            -webkit-user-select: none;
+            touch-action: manipulation; /* 优化触控 */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部连接栏 */
+        .header {
+            padding: 15px;
+            background: #2c3e50;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status { font-size: 14px; color: #bdc3c7; }
+        .btn-connect {
+            background: #27ae60; color: white; border: none; 
+            padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px;
+        }
+
+        /* 中间内容区 */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 10px;
+        }
+
+        /* 区域标题 */
+        .label { font-size: 12px; color: #7f8c8d; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
+
+        /* 表情网格 */
+        .grid-emotions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-emo {
+            background: #34495e; color: #fff; border: none;
+            padding: 15px 0; border-radius: 10px; font-size: 20px;
+            box-shadow: 0 4px #2c3e50;
+            transition: 0.1s;
+        }
+        .btn-emo:active { transform: translateY(4px); box-shadow: 0 0 #2c3e50; background: #f1c40f; color: #000; }
+        .btn-emo span { display: block; font-size: 12px; margin-top: 5px; opacity: 0.8; }
+
+        /* 摇杆控制区 */
+        .d-pad-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .d-pad {
+            display: grid;
+            grid-template-columns: 80px 80px 80px;
+            grid-template-rows: 80px 80px 80px;
+            gap: 5px;
+        }
+        .btn-dir {
+            background: #444; border-radius: 15px; border: none; font-size: 30px; color: #fff;
+            box-shadow: 0 5px #222;
+        }
+        .btn-dir:active { transform: translateY(5px); box-shadow: 0 0 #222; background: #e67e22; }
+        .btn-stop { background: #c0392b; font-size: 16px; font-weight: bold; border-radius: 50%; box-shadow: 0 5px #922b21; }
+        .btn-stop:active { transform: translateY(5px); box-shadow: 0 0 #922b21; background: #e74c3c; }
+
+        /* 底部动作栏 */
+        .bottom-actions {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        .btn-act {
+            flex: 1; min-width: 80px; background: #8e44ad; color: white; border: none;
+            padding: 15px; border-radius: 10px; font-size: 14px;
+            box-shadow: 0 4px #6c3483;
+        }
+        .btn-act:active { transform: translateY(4px); box-shadow: 0 0 #6c3483; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="status" id="status">🔴 未连接</div>
+        <button class="btn-connect" onclick="connectBLE()">🔗 连接</button>
+    </div>
+
+    <div class="content">
+        
+        <div>
+            <div class="label">表情与状态 (UI)</div>
+            <div class="grid-emotions">
+                <button class="btn-emo" onclick="send('UI:LISTEN')">👀<span>聆听</span></button>
+                <button class="btn-emo" onclick="send('UI:REPLY')">💬<span>说话</span></button>
+                <button class="btn-emo" onclick="send('UI:IDLE')">💤<span>待机</span></button>
+            </div>
+        </div>
+
+        <div>
+            <div class="label">移动控制 (Motor)</div>
+            <div class="d-pad-area">
+                <div class="d-pad">
+                    <div></div>
+                    <button class="btn-dir" ontouchstart="send('MOTOR:FWD')" ontouchend="send('MOTOR:STOP')">⬆️</button>
+                    <div></div>
+                    
+                    <button class="btn-dir" ontouchstart="send('MOTOR:LEFT')" ontouchend="send('MOTOR:STOP')">⬅️</button>
+                    <button class="btn-stop" onclick="send('STOP')">STOP</button>
+                    <button class="btn-dir" ontouchstart="send('MOTOR:RIGHT')" ontouchend="send('MOTOR:STOP')">➡️</button>
+
+                    <div></div>
+                    <button class="btn-dir" ontouchstart="send('MOTOR:BACK')" ontouchend="send('MOTOR:STOP')">⬇️</button>
+                    <div></div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="label">表演动作 (Actions)</div>
+            <div class="bottom-actions">
+                <button class="btn-act" onclick="send('ACT:A01')">🏠<br>归位</button>
+                <button class="btn-act" onclick="send('ACT:A02')">😉<br>眨眼</button>
+                <button class="btn-act" onclick="send('ACT:B01')">😱<br>惊讶</button>
+                <button class="btn-act" onclick="send('ACT:A08')">👋<br>挥手</button>
+                <button class="btn-act" onclick="send('ACT:C04')">🥺<br>卖萌</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // 你的 BLE UUID
+    const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const CHAR_RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
+    let device, rxChar;
+
+    async function connectBLE() {
+        try {
+            document.getElementById("status").innerText = "🟡 搜索中...";
+            device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'WALLE_BODY' }],
+                optionalServices: [SERVICE_UUID]
+            });
+
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            rxChar = await service.getCharacteristic(CHAR_RX_UUID);
+
+            document.getElementById("status").innerText = "🟢 已连接瓦力";
+            document.querySelector('.btn-connect').style.display = 'none';
+            
+            // 断开监听
+            device.addEventListener('gattserverdisconnected', () => {
+                document.getElementById("status").innerText = "🔴 已断开";
+                document.querySelector('.btn-connect').style.display = 'block';
+                alert("连接已断开");
+            });
+
+        } catch (error) {
+            document.getElementById("status").innerText = "🔴 连接失败";
+            console.error(error);
+            alert("连接失败: " + error);
+        }
+    }
+
+    async function send(cmd) {
+        if (!rxChar) return;
+        try {
+            // 振动反馈 (仅安卓)
+            if(navigator.vibrate) navigator.vibrate(30);
+            
+            let encoder = new TextEncoder();
+            await rxChar.writeValue(encoder.encode(cmd + "\n"));
+        } catch (error) {
+            console.error("发送失败", error);
+        }
+    }
+</script>
+</body>
+</html>
